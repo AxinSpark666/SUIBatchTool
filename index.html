@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://pbs.twimg.com/profile_images/1950061433796120576/TG_biQfc_400x400.png" type="image/png">
+    <title>SUI Batch Transfer Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3daaf6', // SUI Blue
+                        secondary: '#4ade80', // Green
+                        danger: '#ef4444',
+                        darkbg: '#0f172a',
+                        cardbg: '#1e293b'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+    
+    <!-- SUI SDK (ESM) -->
+    <script type="module">
+        import { getFullnodeUrl, SuiClient } from 'https://esm.sh/@mysten/sui.js@0.54.1/client';
+        import { Ed25519Keypair } from 'https://esm.sh/@mysten/sui.js@0.54.1/keypairs/ed25519';
+        import { TransactionBlock } from 'https://esm.sh/@mysten/sui.js@0.54.1/transactions';
+        import { fromB64, fromHEX } from 'https://esm.sh/@mysten/sui.js@0.54.1/utils';
+        import { decodeSuiPrivateKey } from 'https://esm.sh/@mysten/sui.js@0.54.1/cryptography';
+
+        window.SuiSDK = {
+            SuiClient,
+            getFullnodeUrl,
+            Ed25519Keypair,
+            TransactionBlock,
+            fromB64,
+            fromHEX,
+            decodeSuiPrivateKey
+        };
+        
+        // Notify ready
+        window.dispatchEvent(new Event('sui-sdk-ready'));
+    </script>
+</head>
+<body class="bg-darkbg text-gray-200 font-sans min-h-screen flex flex-col" 
+      style="background-image: linear-gradient(rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.8)), url('https://pbs.twimg.com/profile_banners/1802533132006301696/1765355404/1500x500'); background-size: cover; background-position: center; background-attachment: fixed;">
+
+    <!-- Header -->
+    <header class="bg-cardbg border-b border-gray-700 p-4 shadow-lg">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-primary flex items-center gap-2">
+                <!-- SUI Logo (Droplet) -->
+                <svg viewBox="0 0 500 500" class="h-8 w-8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M250 500C388.071 500 500 388.071 500 250C500 111.929 388.071 0 250 0C111.929 0 0 111.929 0 250C0 388.071 111.929 500 250 500Z" fill="none"/>
+                    <path d="M369.7 348.8C369.7 348.8 322.2 411.5 250 411.5C177.8 411.5 130.3 348.8 130.3 348.8C130.3 348.8 116.3 331.4 130.3 313.9C144.3 296.4 250 166.7 250 166.7C250 166.7 355.7 296.4 369.7 313.9C383.7 331.4 369.7 348.8 369.7 348.8Z" fill="#3daaf6"/>
+                    <path d="M250 88.5C250 88.5 225.6 118.5 250 148.5C274.4 118.5 250 88.5 250 88.5Z" fill="#3daaf6"/>
+                </svg>
+                SUI Batch Transfer
+            </h1>
+            <div class="flex items-center gap-4">
+                <div class="text-sm text-gray-400 hidden md:block">
+                    Secure & Local Execution
+                </div>
+                <a href="https://x.com/AxinSpark" target="_blank" class="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-full border border-gray-600 transition-colors group">
+                    <img src="https://pbs.twimg.com/profile_images/1950061433796120576/TG_biQfc_400x400.png" alt="AxinSpark" class="w-6 h-6 rounded-full border border-gray-500">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] text-gray-500 group-hover:text-blue-400 leading-none mb-0.5">Author</span>
+                        <span class="text-xs font-bold text-gray-200 group-hover:text-white leading-none">@AxinSpark</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto w-full p-4 space-y-6">
+
+        <!-- Safety Disclaimer -->
+        <div class="bg-red-900/20 border border-red-500/50 rounded-lg p-4 flex items-start gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+                <h3 class="font-bold text-red-400">安全免责声明</h3>
+                <p class="text-sm text-gray-300 mt-1">
+                    本工具是一个纯前端应用，所有私钥仅在您的浏览器本地处理，绝不会发送到任何外部服务器。
+                    代码完全开源透明。使用前请务必核对接收地址，因私钥泄露或操作失误导致的资产损失，开发者概不负责。
+                    建议在使用大额资产前，先用小额资金进行测试。
+                </p>
+            </div>
+        </div>
+
+        <!-- Configuration -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-cardbg p-4 rounded-lg border border-gray-700">
+                <label class="block text-sm font-medium text-gray-400 mb-1">选择网络 (Network)</label>
+                <select id="networkSelect" onchange="onNetworkChange()" 
+                    class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-primary mb-3">
+                    <option value="chainstack">Chainstack RPC (Default)</option>
+                    <option value="official">SUI Official RPC</option>
+                    <option value="custom">Custom RPC (自定义)</option>
+                </select>
+
+                <label class="block text-sm font-medium text-gray-400 mb-1 flex justify-between">
+                    <span>RPC 节点地址</span>
+                    <a href="https://console.chainstack.com/" target="_blank" class="text-xs text-primary hover:text-blue-400 transition-colors">
+                         申请免费/专属 RPC
+                    </a>
+                </label>
+                <input type="text" id="rpcUrl" value="https://sui-mainnet.core.chainstack.com/014d52badcd9d4eb858dbe00eaf88d37"
+                    class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-primary placeholder-gray-500"
+                    placeholder="例如: https://fullnode.mainnet.sui.io:443">
+                
+                <!-- RPC Status Monitor -->
+                <div class="mt-2 flex items-center gap-4 text-xs bg-gray-800/50 p-2 rounded border border-gray-700/50">
+                    <div id="rpcStatus" class="flex items-center gap-1.5 text-gray-500 font-medium">
+                        <span class="w-2 h-2 rounded-full bg-gray-500"></span>
+                        <span>检测中...</span>
+                    </div>
+                    <div id="rpcLatency" class="hidden font-mono"></div>
+                </div>
+            </div>
+            <div class="bg-cardbg p-4 rounded-lg border border-gray-700 relative">
+                <label class="block text-sm font-medium text-gray-400 mb-1">代币 Coin Type (可选)</label>
+                <input type="text" id="tokenAddress" onchange="fetchTokenMetadata()"
+                    class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-primary placeholder-gray-500"
+                    placeholder="例如: 0x...::coin::COIN (留空则转账 SUI)">
+                <div id="tokenInfo" class="mt-2 text-xs text-gray-400 hidden flex items-center gap-2">
+                    <!-- Dynamic Content -->
+                </div>
+                <p class="text-xs text-gray-500 mt-2">留空默认转账 SUI。输入 CoinType 则转账对应代币。</p>
+            </div>
+        </div>
+
+        <!-- Main Interface -->
+        <div class="bg-cardbg rounded-lg border border-gray-700 shadow-xl overflow-hidden">
+            <!-- Tabs -->
+            <div class="flex border-b border-gray-700">
+                <button onclick="switchTab('mn')" id="tab-mn" class="flex-1 py-4 text-center font-medium hover:bg-gray-700 transition-colors border-b-2 border-primary text-primary">
+                    功能一：多对多 (M:N)
+                </button>
+                <button onclick="switchTab('m1')" id="tab-m1" class="flex-1 py-4 text-center font-medium hover:bg-gray-700 transition-colors text-gray-400 border-b-2 border-transparent">
+                    功能二：归集 (M:1)
+                </button>
+                <button onclick="switchTab('1n')" id="tab-1n" class="flex-1 py-4 text-center font-medium hover:bg-gray-700 transition-colors text-gray-400 border-b-2 border-transparent">
+                    功能三：分发 (1:N)
+                </button>
+            </div>
+
+            <div class="p-6">
+                <!-- Mode M:N -->
+                <div id="panel-mn" class="space-y-4">
+                    <div class="bg-blue-900/20 p-3 rounded border border-blue-500/30 text-sm text-blue-300 mb-4">
+                        <span class="font-bold">模式说明：</span> 第1个私钥转给第1个地址，第2个转给第2个... 行数必须对应。
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">批量私钥 (每行一个)</label>
+                            <textarea id="mn-keys" rows="10" class="w-full bg-gray-800 border border-gray-600 rounded p-3 font-mono text-xs focus:outline-none focus:border-primary" placeholder="支持格式: suiprivkey... (Bech32) 或 32字节Hex"></textarea>
+                            <button onclick="verifyKeys('mn-keys')" class="mt-2 w-full py-2 bg-gray-700 hover:bg-gray-600 text-primary text-sm rounded transition-colors flex justify-center items-center gap-2">
+                                确认导入并查看余额
+                            </button>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">批量接收地址 (每行一个)</label>
+                            <textarea id="mn-addrs" rows="10" class="w-full bg-gray-800 border border-gray-600 rounded p-3 font-mono text-xs focus:outline-none focus:border-primary" placeholder="SUI地址 (0x...)"></textarea>
+                            <button onclick="verifyMnMapping()" class="mt-2 w-full py-2 bg-gray-700 hover:bg-gray-600 text-secondary text-sm rounded transition-colors flex justify-center items-center gap-2">
+                                确认导入接收地址
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mode M:1 -->
+                <div id="panel-m1" class="space-y-4 hidden">
+                    <div class="bg-blue-900/20 p-3 rounded border border-blue-500/30 text-sm text-blue-300 mb-4">
+                        <span class="font-bold">模式说明：</span> 所有输入的私钥账户将资金转入同一个接收地址。
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">批量私钥 (每行一个)</label>
+                            <textarea id="m1-keys" rows="10" class="w-full bg-gray-800 border border-gray-600 rounded p-3 font-mono text-xs focus:outline-none focus:border-primary" placeholder="支持格式: suiprivkey... (Bech32) 或 32字节Hex"></textarea>
+                            <button onclick="verifyKeys('m1-keys')" class="mt-2 w-full py-2 bg-gray-700 hover:bg-gray-600 text-primary text-sm rounded transition-colors flex justify-center items-center gap-2">
+                                确认导入并查看余额
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-2">接收地址 (单个)</label>
+                                <input type="text" id="m1-addr" class="w-full bg-gray-800 border border-gray-600 rounded p-3 font-mono text-sm focus:outline-none focus:border-primary" placeholder="SUI地址 (0x...)">
+                                <button onclick="verifyM1Mapping()" class="mt-2 w-full py-2 bg-gray-700 hover:bg-gray-600 text-secondary text-sm rounded transition-colors flex justify-center items-center gap-2">
+                                    确认导入接收地址
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mode 1:N -->
+                <div id="panel-1n" class="space-y-4 hidden">
+                    <div class="bg-blue-900/20 p-3 rounded border border-blue-500/30 text-sm text-blue-300 mb-4">
+                        <span class="font-bold">模式说明：</span> 一个主账户向多个地址分发资金。
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">发送方私钥 (单个)</label>
+                            <input type="password" id="1n-key" class="w-full bg-gray-800 border border-gray-600 rounded p-3 font-mono text-sm focus:outline-none focus:border-primary" placeholder="支持格式: suiprivkey... 或 Hex">
+                            <div class="mt-2 text-xs text-gray-500 flex justify-between items-center">
+                                <span>* 为了安全，输入时隐藏</span>
+                                <button onclick="verifyKeys('1n-key')" class="text-primary hover:underline text-xs flex items-center gap-1">
+                                    查看余额
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">批量接收地址 (每行一个)</label>
+                            <textarea id="1n-addrs" rows="10" class="w-full bg-gray-800 border border-gray-600 rounded p-3 font-mono text-xs focus:outline-none focus:border-primary" placeholder="SUI地址 (0x...)"></textarea>
+                             <button onclick="verifyKeys('1n-key')" class="mt-2 w-full py-2 bg-gray-700 hover:bg-gray-600 text-secondary text-sm rounded transition-colors flex justify-center items-center gap-2">
+                                确认导入接收地址
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Common Settings -->
+                <div class="mt-6 pt-6 border-t border-gray-700">
+                    <!-- Account Overview Panel -->
+                    <div id="account-overview-panel" class="mb-6 hidden">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                账户概览 & 余额
+                            </h3>
+                            <button onclick="clearAccountOverview()" class="text-xs text-gray-500 hover:text-red-400">清空列表</button>
+                        </div>
+                        <div class="bg-gray-800/50 rounded border border-gray-700 overflow-hidden">
+                            <div class="max-h-60 overflow-y-auto custom-scrollbar">
+                                <table class="w-full text-left text-xs text-gray-400">
+                                    <thead class="bg-gray-800 text-gray-300 uppercase font-medium sticky top-0 z-10">
+                                        <tr>
+                                            <th class="px-4 py-2">#</th>
+                                            <th class="px-4 py-2">钱包地址 (Sender)</th>
+                                            <th class="px-4 py-2">接收地址 (Receiver)</th>
+                                            <th class="px-4 py-2">SUI余额</th>
+                                            <th class="px-4 py-2">状态</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="account-table-body" class="divide-y divide-gray-700/50">
+                                        <!-- Rows -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row gap-4 items-end">
+                        <div class="flex-grow">
+                            <label class="block text-sm font-medium text-gray-400 mb-1 flex justify-between items-center">
+                                <span>转账数量设置</span>
+                                <span class="text-xs text-gray-500 flex items-center gap-1" id="gas-estimate">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                    预估 Gas: <span class="text-yellow-500">Calculating...</span>
+                                </span>
+                            </label>
+                            <div class="flex flex-wrap gap-4 mb-2">
+                                <label class="inline-flex items-center cursor-pointer">
+                                    <input type="radio" name="amount-mode" value="fixed" class="form-radio text-primary bg-gray-800 border-gray-600 focus:ring-0" onclick="toggleAmountInputs()" checked>
+                                    <span class="ml-2 text-sm text-gray-300">固定</span>
+                                </label>
+                                <label class="inline-flex items-center cursor-pointer">
+                                    <input type="radio" name="amount-mode" value="all" class="form-radio text-primary bg-gray-800 border-gray-600 focus:ring-0" onclick="toggleAmountInputs()">
+                                    <span class="ml-2 text-sm text-gray-300">全部</span>
+                                </label>
+                                <label class="inline-flex items-center cursor-pointer">
+                                    <input type="radio" name="amount-mode" value="percent" class="form-radio text-primary bg-gray-800 border-gray-600 focus:ring-0" onclick="toggleAmountInputs()">
+                                    <span class="ml-2 text-sm text-gray-300">百分比</span>
+                                </label>
+                                <label class="inline-flex items-center cursor-pointer">
+                                    <input type="radio" name="amount-mode" value="random" class="form-radio text-primary bg-gray-800 border-gray-600 focus:ring-0" onclick="toggleAmountInputs()">
+                                    <span class="ml-2 text-sm text-gray-300">随机</span>
+                                </label>
+                            </div>
+                            <div id="amount-input-container">
+                                <!-- Fixed -->
+                                <div id="input-fixed">
+                                    <input type="number" id="amount" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-primary placeholder-gray-500" placeholder="例如: 0.1">
+                                </div>
+                                <!-- All -->
+                                <div id="input-all" class="hidden">
+                                    <div class="w-full bg-gray-800/50 border border-gray-600 rounded px-3 py-2 text-gray-400 italic text-sm">
+                                        将发送账户内所有可用余额 (保留Gas费)
+                                    </div>
+                                </div>
+                                <!-- Percent -->
+                                <div id="input-percent" class="hidden">
+                                    <div class="relative">
+                                        <input type="number" id="amount-percent" min="1" max="100" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-primary placeholder-gray-500" placeholder="例如: 50">
+                                        <span class="absolute right-3 top-2 text-gray-500">%</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">发送余额的百分比 (例如 50%)</p>
+                                </div>
+                                <!-- Random -->
+                                <div id="input-random" class="hidden">
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" id="amount-min" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-primary text-center" placeholder="Min">
+                                        <span class="text-gray-500">-</span>
+                                        <input type="number" id="amount-max" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-primary text-center" placeholder="Max">
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">在最小值和最大值之间随机生成金额</p>
+                                </div>
+                            </div>
+                        </div>
+
+                         <div class="w-full md:w-48">
+                            <label class="block text-sm font-medium text-gray-400 mb-1">随机延迟 (秒)</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="delay-min" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-primary text-center" placeholder="0">
+                                <span class="text-gray-500">-</span>
+                                <input type="number" id="delay-max" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-primary text-center" placeholder="0">
+                            </div>
+                        </div>
+
+                        <button onclick="confirmExecution()" class="w-full md:w-auto bg-primary hover:bg-blue-600 text-white font-bold py-2 px-6 rounded shadow-lg transform transition hover:scale-105 active:scale-95">
+                            开始执行
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs -->
+            <div class="bg-gray-900 border-t border-gray-700 p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-sm font-bold text-gray-400">执行日志</h3>
+                    <button onclick="exportLogs()" class="text-xs text-primary hover:underline">导出 CSV</button>
+                </div>
+                <div class="h-48 overflow-y-auto custom-scrollbar bg-black/30 rounded p-2 font-mono text-xs">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-gray-500 border-b border-gray-700">
+                                <th class="pb-1 w-12">#</th>
+                                <th class="pb-1 w-32">Sender</th>
+                                <th class="pb-1 w-32">Receiver</th>
+                                <th class="pb-1 w-24">Amount</th>
+                                <th class="pb-1 w-20">Status</th>
+                                <th class="pb-1">Tx Hash</th>
+                            </tr>
+                        </thead>
+                        <tbody id="log-table-body" class="text-gray-300"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-cardbg border border-gray-600 rounded-lg p-6 max-w-md w-full shadow-2xl transform transition-all scale-100">
+            <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                确认执行
+            </h3>
+            <div class="space-y-3 text-sm text-gray-300">
+                <p>您即将执行以下批量操作：</p>
+                <ul class="list-disc pl-5 space-y-1">
+                    <li>模式: <span class="font-bold text-primary" id="modal-mode">-</span></li>
+                    <li>任务数量: <span class="font-bold text-white" id="modal-count">0</span></li>
+                    <li>单个金额: <span class="font-bold text-secondary" id="modal-amount">-</span></li>
+                </ul>
+                <div class="bg-yellow-900/20 border border-yellow-600/30 p-2 rounded text-xs text-yellow-500">
+                    注意：SUI网络Gas费可能波动，请确保账户有足够余额。
+                </div>
+            </div>
+            <div class="mt-6 flex gap-3">
+                <button onclick="closeModal()" class="flex-1 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors">取消</button>
+                <button onclick="executeTransfer()" class="flex-1 py-2 bg-primary hover:bg-blue-600 text-white font-bold rounded shadow-lg transition-colors">确认并发送</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- SUI Logic ---
+        let tasks = [];
+        let currentTab = 'mn';
+        let isProcessing = false;
+        const MIST_PER_SUI = 1_000_000_000n; // 9 decimals
+
+        // Wait for SDK to load
+        let suiSDKReady = false;
+        window.addEventListener('sui-sdk-ready', () => {
+            suiSDKReady = true;
+            console.log("SUI SDK Loaded");
+            startRpcHeartbeat();
+        });
+
+        function startRpcHeartbeat() {
+            restartRpcMonitor(false);
+            // Poll every 5 seconds (silent mode)
+            setInterval(() => restartRpcMonitor(true), 5000);
+        }
+
+        function onNetworkChange() {
+            const val = document.getElementById('networkSelect').value;
+            const input = document.getElementById('rpcUrl');
+            if (val === 'chainstack') {
+                input.value = 'https://sui-mainnet.core.chainstack.com/014d52badcd9d4eb858dbe00eaf88d37';
+            } else if (val === 'official') {
+                input.value = 'https://fullnode.mainnet.sui.io:443';
+            }
+            // Custom keeps current value
+            restartRpcMonitor(false);
+        }
+
+        // Bind RPC input change
+        document.getElementById('rpcUrl').addEventListener('change', () => restartRpcMonitor(false));
+        
+        // Gas Estimation
+        async function updateGasEstimate() {
+            const gasEl = document.getElementById('gas-estimate');
+            try {
+                const { SuiClient } = window.SuiSDK;
+                const client = new SuiClient({ url: document.getElementById('rpcUrl').value });
+                
+                // Get Reference Gas Price
+                const price = await client.getReferenceGasPrice();
+                // SUI Base Transfer usually ~2000-5000 MIST Budget
+                // Complex PTB (Coin split + Transfer) ~3000-10000 MIST
+                
+                // Estimate: Base Cost * Price
+                // A typical simple transfer is ~ 2,000,000 MIST budget, actual cost ~ 0.002 SUI? No.
+                // SUI gas calculation: (Computation + Storage - Rebate) * Price
+                // Simple Transfer ~ 0.001 - 0.003 SUI typically on Mainnet
+                
+                // Let's display Reference Price for now, or a "Typical" range
+                const priceMist = Number(price);
+                const estimatedCost = (priceMist * 1000) / 1e9; // Rough estimate for simple tx (1000 units?)
+                
+                // Better: just say "Ref Price: X MIST"
+                // Or Fetch a dry run? Dry run needs a signer.
+                
+                gasEl.innerHTML = `
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    Ref Gas: <span class="text-green-400">${priceMist} MIST</span> (~${(priceMist * 2000 / 1e9).toFixed(6)} SUI)
+                `;
+            } catch(e) {
+                gasEl.innerHTML = `<span class="text-red-500">Gas Error</span>`;
+            }
+        }
+        
+        // Update gas on load and interval
+        setInterval(updateGasEstimate, 10000);
+        window.addEventListener('sui-sdk-ready', updateGasEstimate);
+
+        // Tabs
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('[id^="tab-"]').forEach(el => {
+                el.classList.remove('border-primary', 'text-primary');
+                el.classList.add('border-transparent', 'text-gray-400');
+            });
+            document.getElementById(`tab-${tab}`).classList.remove('border-transparent', 'text-gray-400');
+            document.getElementById(`tab-${tab}`).classList.add('border-primary', 'text-primary');
+
+            document.querySelectorAll('[id^="panel-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`panel-${tab}`).classList.remove('hidden');
+            
+            clearAccountOverview();
+        }
+
+        function toggleAmountInputs() {
+            const mode = document.querySelector('input[name="amount-mode"]:checked').value;
+            
+            // Hide all first
+            ['input-fixed', 'input-all', 'input-percent', 'input-random'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            
+            // Show selected
+            if(mode === 'fixed') document.getElementById('input-fixed').classList.remove('hidden');
+            if(mode === 'all') document.getElementById('input-all').classList.remove('hidden');
+            if(mode === 'percent') document.getElementById('input-percent').classList.remove('hidden');
+            if(mode === 'random') document.getElementById('input-random').classList.remove('hidden');
+        }
+
+        function clearAccountOverview() {
+            tasks = [];
+            document.getElementById('account-table-body').innerHTML = '';
+            document.getElementById('account-overview-panel').classList.add('hidden');
+        }
+
+        // Utils
+        const wait = (ms) => new Promise(r => setTimeout(r, ms));
+        
+        // Retry Wrapper
+        async function retryOperation(fn, retries = 10, baseDelay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    return await fn();
+                } catch (e) {
+                    const msg = e.message || JSON.stringify(e);
+                    const isRateLimit = msg.includes('429') || msg.includes('Too Many Requests');
+                    
+                    if (i === retries - 1) throw e; // Last retry failed
+
+                    let delay = baseDelay * Math.pow(2, i); // Exponential backoff
+                    
+                    if (isRateLimit) {
+                        // For 429, use a more aggressive backoff: 3s, 6s, 12s, 24s... (Cap at 30s)
+                        delay = Math.min(3000 * Math.pow(2, i), 30000); 
+                        console.warn(`RPC 429 Limit hit. Pausing for ${delay/1000}s...`);
+                    }
+                    
+                    console.warn(`Retry ${i+1}/${retries} failed: ${msg}. Waiting ${delay}ms...`);
+                    await wait(delay);
+                }
+            }
+        }
+        
+        async function fetchTokenMetadata() {
+            const coinType = document.getElementById('tokenAddress').value.trim();
+            const infoEl = document.getElementById('tokenInfo');
+            
+            if (!coinType) {
+                infoEl.classList.add('hidden');
+                return;
+            }
+
+            // Show loading
+            infoEl.innerHTML = '<span class="text-yellow-500 flex items-center gap-2"><svg class="animate-spin h-3 w-3 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> 获取代币信息中...</span>';
+            infoEl.classList.remove('hidden');
+
+            try {
+                const { SuiClient } = window.SuiSDK;
+                const rpcUrl = document.getElementById('rpcUrl').value;
+                const client = new SuiClient({ url: rpcUrl });
+                
+                const metadata = await client.getCoinMetadata({ coinType });
+                if (metadata) {
+                    infoEl.innerHTML = `
+                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                        <span class="font-bold text-white text-sm">${metadata.symbol || 'UNK'}</span>
+                        <span class="text-gray-400">(${metadata.name || ''})</span>
+                        <span class="text-gray-600 mx-1">|</span>
+                        <span class="bg-gray-700 px-1.5 py-0.5 rounded text-gray-300">Decimals: ${metadata.decimals}</span>
+                    `;
+                } else {
+                     infoEl.innerHTML = '<span class="text-red-400 flex items-center gap-1">❌ 未找到代币信息，请检查 CoinType</span>';
+                }
+            } catch (e) {
+                console.error(e);
+                infoEl.innerHTML = '<span class="text-red-400 flex items-center gap-1">❌ 获取失败 (无效的 CoinType 或 RPC 错误)</span>';
+            }
+        }
+
+        function parseInput(text) {
+            return text.split(/[\r\n]+/).map(l => l.trim()).filter(l => l);
+        }
+
+        function getSuiKeypair(keyStr) {
+            try {
+                const { Ed25519Keypair, decodeSuiPrivateKey, fromHEX, fromB64 } = window.SuiSDK;
+                
+                keyStr = keyStr.trim();
+
+                // Case 1: Bech32 'suiprivkey...'
+                if (keyStr.startsWith('suiprivkey')) {
+                    try {
+                        const { schema, secretKey } = decodeSuiPrivateKey(keyStr);
+                        if (schema !== 'ED25519') throw new Error("Only ED25519 supported");
+                        return Ed25519Keypair.fromSecretKey(secretKey);
+                    } catch (e) {
+                        console.warn("Bech32 parse failed:", e);
+                    }
+                }
+                
+                // Case 2: Hex (64 chars usually)
+                let hexStr = keyStr;
+                if (hexStr.startsWith('0x')) hexStr = hexStr.slice(2);
+
+                if (/^[0-9a-fA-F]+$/.test(hexStr)) {
+                    try {
+                        // Custom hex parser to ensure reliability
+                        const bytes = new Uint8Array(hexStr.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+                        
+                        // SUI private keys are 32 bytes (seed) or 64 bytes (seed + pub)
+                        if (bytes.length === 32) {
+                             return Ed25519Keypair.fromSecretKey(bytes);
+                        }
+                        if (bytes.length === 64) {
+                             return Ed25519Keypair.fromSecretKey(bytes.slice(0, 32));
+                        }
+                    } catch (e) {
+                        console.warn("Hex parse failed:", e);
+                    }
+                }
+                
+                // Case 3: Base64
+                try {
+                     const bytes = fromB64(keyStr);
+                     if (bytes.length === 32) return Ed25519Keypair.fromSecretKey(bytes);
+                     if (bytes.length === 64) return Ed25519Keypair.fromSecretKey(bytes.slice(0, 32));
+                } catch(e) {}
+
+                throw new Error("Unknown key format");
+            } catch (e) {
+                console.error("Key parse error for:", keyStr, e);
+                return null;
+            }
+        }
+
+        async function verifyKeys(inputId) {
+            if (!suiSDKReady) { alert("SDK Loading..."); return; }
+            
+            clearAccountOverview();
+            const { SuiClient } = window.SuiSDK;
+            const rpcUrl = document.getElementById('rpcUrl').value.trim();
+            const client = new SuiClient({ url: rpcUrl });
+
+            let keyLines = [];
+            if (inputId === '1n-key') {
+                const k = document.getElementById(inputId).value.trim();
+                if (k) keyLines.push(k);
+            } else {
+                keyLines = parseInput(document.getElementById(inputId).value);
+            }
+
+            if (keyLines.length === 0) { alert("请输入私钥"); return; }
+
+            const tableBody = document.getElementById('account-table-body');
+            document.getElementById('account-overview-panel').classList.remove('hidden');
+
+            // Process keys
+            tasks = [];
+            for (let i = 0; i < keyLines.length; i++) {
+                const keyStr = keyLines[i];
+                let kp = getSuiKeypair(keyStr);
+                
+                let address = kp ? kp.toSuiAddress() : '无效私钥';
+                let balanceStr = '查询中...';
+                let status = '待处理';
+
+                const rowId = `row-${i}`;
+                const row = `
+                    <tr id="${rowId}" class="hover:bg-gray-800/50">
+                        <td class="px-4 py-2 text-gray-400">${i + 1}</td>
+                        <td class="px-4 py-2 font-mono text-white">${address.slice(0,6)}...${address.slice(-4)}</td>
+                        <td class="px-4 py-2 font-mono text-white" id="row-recv-${i}">-</td>
+                        <td class="px-4 py-2 font-mono text-white" id="row-bal-${i}">${balanceStr}</td>
+                        <td class="px-4 py-2 text-yellow-500" id="row-status-${i}">${status}</td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+
+                if (kp) {
+                    tasks.push({
+                        index: i,
+                        keypair: kp,
+                        sender: address,
+                        receiver: '',
+                        balance: 0n,
+                        status: 'Pending',
+                        details: ''
+                    });
+                    
+                    // Async fetch balance
+                    fetchBalance(client, address, i);
+                } else {
+                     document.getElementById(`row-status-${i}`).innerText = '无效私钥';
+                     document.getElementById(`row-status-${i}`).className = 'px-4 py-2 text-red-500';
+                     document.getElementById(`row-bal-${i}`).innerText = '-';
+                     tasks.push({ status: 'Failed', details: 'Invalid Key' });
+                }
+            }
+        }
+
+        async function fetchBalance(client, address, index) {
+            try {
+                // Check CoinType if provided
+                const tokenType = document.getElementById('tokenAddress').value.trim();
+                
+                let balance = 0n;
+                let decimals = 9;
+
+                if (tokenType) {
+                    const res = await retryOperation(() => client.getBalance({ owner: address, coinType: tokenType }));
+                    balance = BigInt(res.totalBalance);
+                } else {
+                    const res = await retryOperation(() => client.getBalance({ owner: address }));
+                    balance = BigInt(res.totalBalance);
+                }
+
+                tasks[index].balance = balance;
+                
+                let displayBal = (Number(balance) / 1e9).toFixed(4); // Default 9 decimals for SUI
+                document.getElementById(`row-bal-${index}`).innerText = displayBal;
+                
+                // If 1:N, verify receiver list too if needed
+                if (currentTab === '1n') {
+                     verifyKeys('1n-addrs'); // This is tricky, logic handled in prepare
+                }
+
+            } catch (e) {
+                console.error(e);
+                document.getElementById(`row-bal-${index}`).innerText = '查询失败';
+            }
+        }
+
+        function verifyMnMapping() {
+            if (currentTab !== 'mn') return;
+            const addrLines = parseInput(document.getElementById('mn-addrs').value);
+            
+            tasks.forEach((task, i) => {
+                if (task.status === 'Failed') return;
+                if (i < addrLines.length) {
+                    const addr = addrLines[i];
+                    task.receiver = addr;
+                    document.getElementById(`row-recv-${i}`).innerText = addr.slice(0,6) + '...' + addr.slice(-4);
+                }
+            });
+        }
+
+        function verifyM1Mapping() {
+             if (currentTab !== 'm1') return;
+             const addr = document.getElementById('m1-addr').value.trim();
+             if (!addr) return;
+             
+             tasks.forEach((task, i) => {
+                if (task.status === 'Failed') return;
+                task.receiver = addr;
+                document.getElementById(`row-recv-${i}`).innerText = addr.slice(0,6) + '...' + addr.slice(-4);
+            });
+        }
+
+        // Execution Logic
+        function openModal() {
+            document.getElementById('confirm-modal').classList.remove('hidden');
+            document.getElementById('confirm-modal').classList.add('flex');
+        }
+        function closeModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            document.getElementById('confirm-modal').classList.remove('flex');
+        }
+
+        function updateLogTable() {
+            const tbody = document.getElementById('log-table-body');
+            let html = '';
+            
+            const statusMap = {
+                'Pending': '待处理',
+                'Sending': '发送中',
+                'Success': '成功',
+                'Failed': '失败'
+            };
+
+            tasks.forEach(t => {
+                let statusColor = t.status === 'Success' ? 'text-green-500' : (t.status === 'Failed' ? 'text-red-500' : 'text-yellow-500');
+                
+                // Helper to shorten address
+                const shorten = (str) => str ? str.slice(0, 6) + '...' + str.slice(-4) : '-';
+                
+                // Amount Display
+                let amtDisplay = '-';
+                if (t.amountStr) amtDisplay = t.amountStr;
+                
+                // Hash / Details
+                let hashDisplay = '-';
+                if (t.txHash) {
+                    hashDisplay = `<a href="https://suiscan.xyz/mainnet/tx/${t.txHash}" target="_blank" class="text-primary hover:underline">${t.txHash.slice(0, 8)}...</a>`;
+                } else if (t.status === 'Failed') {
+                    hashDisplay = `<span class="text-red-400 text-xs" title="${t.details}">Error (Hover)</span>`;
+                }
+
+                html += `
+                    <tr class="border-b border-gray-800 hover:bg-gray-800/30 transition-colors">
+                        <td class="py-1 text-gray-500">${t.index + 1}</td>
+                        <td class="py-1 font-mono text-gray-400" title="${t.sender}">${shorten(t.sender)}</td>
+                        <td class="py-1 font-mono text-gray-400" title="${t.receiver}">${shorten(t.receiver)}</td>
+                        <td class="py-1 text-gray-300">${amtDisplay}</td>
+                        <td class="py-1 ${statusColor}">${statusMap[t.status] || t.status}</td>
+                        <td class="py-1 font-mono text-xs">${hashDisplay}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        async function confirmExecution() {
+            // Prepare tasks based on mode
+            const mode = currentTab;
+            
+            // Validate Receivers
+            let validCount = 0;
+            
+            // 1:N Handling
+            if (mode === '1n') {
+                const senderKey = document.getElementById('1n-key').value.trim();
+                const kp = getSuiKeypair(senderKey);
+                if (!kp) { alert("发送私钥无效"); return; }
+                
+                const addrs = parseInput(document.getElementById('1n-addrs').value);
+                if (addrs.length === 0) { alert("请输入接收地址"); return; }
+                
+                // Rebuild tasks for 1:N
+                tasks = [];
+                const { SuiClient } = window.SuiSDK;
+                const client = new SuiClient({ url: document.getElementById('rpcUrl').value });
+                const senderAddr = kp.toSuiAddress();
+                
+                // Get Balance
+                let balance = 0n;
+                try {
+                     const res = await retryOperation(() => client.getBalance({ owner: senderAddr }));
+                     balance = BigInt(res.totalBalance);
+                } catch(e) {}
+
+                addrs.forEach((addr, i) => {
+                    tasks.push({
+                        index: i,
+                        keypair: kp,
+                        sender: senderAddr,
+                        receiver: addr,
+                        balance: balance, // Shared balance
+                        status: 'Pending',
+                        details: 'Prepared'
+                    });
+                });
+            }
+
+            // Check amounts
+            const amountMode = document.querySelector('input[name="amount-mode"]:checked').value;
+            let amountDisplay = '0';
+
+            if (amountMode === 'fixed') {
+                const val = parseFloat(document.getElementById('amount').value);
+                if (!val || val <= 0) { alert("请输入有效的固定金额"); return; }
+                amountDisplay = `${val} (固定)`;
+            } else if (amountMode === 'all') {
+                amountDisplay = "全部余额 (MAX)";
+            } else if (amountMode === 'percent') {
+                const pct = parseFloat(document.getElementById('amount-percent').value);
+                if (!pct || pct <= 0 || pct > 100) { alert("请输入有效的百分比 (1-100)"); return; }
+                amountDisplay = `${pct}% 余额`;
+            } else if (amountMode === 'random') {
+                const min = parseFloat(document.getElementById('amount-min').value);
+                const max = parseFloat(document.getElementById('amount-max').value);
+                if (!min || !max || min >= max) { alert("请输入有效的随机范围 (Min < Max)"); return; }
+                amountDisplay = `${min} - ${max} (随机)`;
+            }
+            
+            validCount = tasks.filter(t => t.status !== 'Failed').length;
+            if (validCount === 0) { alert("无有效任务"); return; }
+
+            document.getElementById('modal-mode').innerText = mode.toUpperCase();
+            document.getElementById('modal-count').innerText = validCount;
+            document.getElementById('modal-amount').innerText = amountDisplay;
+            
+            openModal();
+        }
+
+        async function executeTransfer() {
+            closeModal();
+            if (isProcessing) return;
+            isProcessing = true;
+            
+            const { SuiClient, TransactionBlock } = window.SuiSDK;
+            const client = new SuiClient({ url: document.getElementById('rpcUrl').value });
+            const tokenType = document.getElementById('tokenAddress').value.trim();
+            const amountMode = document.querySelector('input[name="amount-mode"]:checked').value;
+            
+            // Amount params
+            const fixedAmount = parseFloat(document.getElementById('amount').value);
+            const percentAmount = parseFloat(document.getElementById('amount-percent').value);
+            const randMin = parseFloat(document.getElementById('amount-min').value);
+            const randMax = parseFloat(document.getElementById('amount-max').value);
+            
+            // Delay settings
+            const delayMin = parseFloat(document.getElementById('delay-min').value) || 0;
+            const delayMax = parseFloat(document.getElementById('delay-max').value) || 0;
+
+            for (let i = 0; i < tasks.length; i++) {
+                const task = tasks[i];
+                if (task.status === 'Failed') continue;
+                
+                task.status = 'Sending';
+                task.details = 'Preparing...';
+                updateLogTable();
+
+                try {
+                    // Delay (User defined + Auto throttle)
+                    let userDelay = 0;
+                    if (i > 0) {
+                        if (delayMin > 0 || delayMax > 0) {
+                            userDelay = Math.random() * (delayMax - delayMin) + delayMin;
+                        }
+                        // Enforce minimum 1.5s throttle between tasks to avoid 429
+                        const totalWait = Math.max(userDelay * 1000, 1500); 
+                        await wait(totalWait);
+                    }
+
+                    const tx = new TransactionBlock();
+                    
+                    // Determine Amount (MIST)
+                    let amountMist = 0n;
+                    let isAll = false;
+                    let displayAmountStr = "";
+
+                    // Calculate target amount based on mode
+                    if (amountMode === 'fixed') {
+                        amountMist = BigInt(Math.floor(fixedAmount * 1e9)); 
+                        displayAmountStr = fixedAmount + (tokenType ? " Token" : " SUI");
+                    } else if (amountMode === 'all') {
+                        isAll = true;
+                        displayAmountStr = "ALL (Max)";
+                    } else if (amountMode === 'percent') {
+                        // Needs balance first
+                        if (!task.balance) {
+                             // Fetch if missing (should be there from verify)
+                             const bRes = await retryOperation(() => client.getBalance({ owner: task.sender, coinType: tokenType || null }));
+                             task.balance = BigInt(bRes.totalBalance);
+                        }
+                        amountMist = task.balance * BigInt(Math.floor(percentAmount)) / 100n;
+                        displayAmountStr = `${percentAmount}% (~${(Number(amountMist)/1e9).toFixed(4)})`;
+                    } else if (amountMode === 'random') {
+                        const randVal = Math.random() * (randMax - randMin) + randMin;
+                        amountMist = BigInt(Math.floor(randVal * 1e9));
+                        displayAmountStr = `${randVal.toFixed(4)} (Rand)`;
+                    }
+
+                    task.amountStr = displayAmountStr;
+                    updateLogTable();
+
+                    if (tokenType) {
+                        // --- SPL (Coin) Transfer ---
+                        const coins = await retryOperation(() => client.getCoins({ owner: task.sender, coinType: tokenType }));
+                        if (coins.data.length === 0) throw new Error("No Coins Found");
+                        
+                        if (isAll) {
+                             // Transfer all coin objects
+                             const coinIds = coins.data.map(c => c.coinObjectId);
+                             tx.transferObjects(coinIds.map(id => tx.object(id)), tx.pure(task.receiver));
+                        } else {
+                            // Split from first coin (naive) or merge
+                            // Advanced: Merge all to first, then split?
+                            // For V1: Try split from first sufficient coin
+                            // If percent/random/fixed, we have amountMist
+                            
+                            // Find a coin with enough balance
+                            let targetCoin = coins.data.find(c => BigInt(c.balance) >= amountMist);
+                            
+                            if (!targetCoin) {
+                                // If no single coin is enough, we might need merge (PTB can do this)
+                                // tx.mergeCoins(dest, [src...])
+                                if (coins.data.length > 1) {
+                                    // Merge all into first
+                                    const [first, ...rest] = coins.data;
+                                    tx.mergeCoins(tx.object(first.coinObjectId), rest.map(c => tx.object(c.coinObjectId)));
+                                    targetCoin = first; // Now it has all balance
+                                } else {
+                                     throw new Error("Insufficient Balance (Single Coin)");
+                                }
+                            }
+                            
+                            const [coin] = tx.splitCoins(tx.object(targetCoin.coinObjectId), [tx.pure(amountMist)]);
+                            tx.transferObjects([coin], tx.pure(task.receiver));
+                        }
+
+                    } else {
+                        // --- SUI Transfer ---
+                        if (isAll) {
+                            // Sweep SUI
+                            tx.transferObjects([tx.gas], tx.pure(task.receiver));
+                        } else {
+                            // Fixed/Percent/Random Amount
+                            const [coin] = tx.splitCoins(tx.gas, [tx.pure(amountMist)]);
+                            tx.transferObjects([coin], tx.pure(task.receiver));
+                        }
+                    }
+
+                    task.details = 'Signing...';
+                    updateLogTable();
+
+                    const result = await retryOperation(() => client.signAndExecuteTransactionBlock({
+                        signer: task.keypair,
+                        transactionBlock: tx,
+                        options: { showEffects: true }
+                    }));
+
+                    if (result.effects.status.status === 'success') {
+                        task.status = 'Success';
+                        task.txHash = result.digest;
+                        task.details = 'Digest: ' + result.digest.slice(0, 8) + '...';
+                    } else {
+                        throw new Error("Failed: " + result.effects.status.error);
+                    }
+
+                } catch (e) {
+                    console.error(e);
+                    task.status = 'Failed';
+                    task.details = e.message || "Error";
+                }
+                updateLogTable();
+            }
+            
+            isProcessing = false;
+            // alert("完成");
+        }
+
+        let isCheckingRpc = false;
+        async function restartRpcMonitor(silent = false) {
+            if (isCheckingRpc) return;
+            isCheckingRpc = true;
+
+            const url = document.getElementById('rpcUrl').value;
+            const statusEl = document.getElementById('rpcStatus');
+            const latencyEl = document.getElementById('rpcLatency');
+            
+            if (!silent) {
+                statusEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-yellow-500"></span><span>Checking...</span>';
+                latencyEl.classList.add('hidden');
+            }
+            
+            try {
+                const { SuiClient } = window.SuiSDK;
+                const client = new SuiClient({ url });
+                const start = Date.now();
+                await client.getLatestCheckpointSequenceNumber();
+                const lat = Date.now() - start;
+                
+                // Color code latency
+                let colorClass = 'text-green-400';
+                if (lat > 500) colorClass = 'text-yellow-400';
+                if (lat > 1000) colorClass = 'text-red-400';
+                
+                statusEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span><span>Online</span>';
+                latencyEl.innerHTML = `<span class="${colorClass}">${lat}ms</span>`;
+                latencyEl.classList.remove('hidden');
+            } catch(e) {
+                console.warn("RPC Check Failed:", e);
+                statusEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-500"></span><span>Offline</span>';
+                latencyEl.classList.add('hidden');
+            } finally {
+                isCheckingRpc = false;
+            }
+        }
+        
+        function exportLogs() {
+             // CSV Export logic
+             let csv = "Index,Sender,Receiver,Amount,Status,TxHash,Details\n";
+             tasks.forEach(t => {
+                 // Escape values
+                 const safeDetails = (t.details || '').replace(/,/g, ';');
+                 csv += `${t.index},${t.sender},${t.receiver},${t.amountStr || '-'},${t.status},${t.txHash || '-'},${safeDetails}\n`;
+             });
+             const blob = new Blob([csv], { type: 'text/csv' });
+             const url = URL.createObjectURL(blob);
+             const a = document.createElement('a');
+             a.href = url;
+             a.download = 'sui_transfer_logs.csv';
+             a.click();
+        }
+
+    </script>
+</body>
+</html>
